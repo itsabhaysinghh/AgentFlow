@@ -39,3 +39,4 @@ class ConnectionManager:
                     logger.warning(f"Failed to send WS message: {e}")
 
 ws_manager = ConnectionManager()
+

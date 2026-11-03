@@ -97,3 +97,4 @@ def toggle_integration(key: str, db: Session = Depends(get_db), current_user: Us
     db.commit()
     db.refresh(linked)
     return {"key": key, "status": linked.status}
+

@@ -66,3 +66,4 @@ def execute_workflow_task(execution_id: str, prompt: str, workflow_id: str):
             db.commit()
     finally:
         db.close()
+

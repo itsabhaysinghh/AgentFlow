@@ -47,3 +47,4 @@ def update_agent_config(role: str, config: AgentConfigUpdate, db: Session = Depe
     agent.temperature = config.temperature
     db.commit()
     return {"message": "Agent parameters updated", "role": role}
+

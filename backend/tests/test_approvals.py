@@ -54,3 +54,4 @@ def test_approval_resolution(client, db_session):
     # Verify execution resumed to completed
     db_session.refresh(exec_record)
     assert exec_record.status == "completed"
+

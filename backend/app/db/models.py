@@ -140,3 +140,4 @@ class Report(Base):
     content_markdown = Column(Text, nullable=False)
     s3_url = Column(String(512), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+

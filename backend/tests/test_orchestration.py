@@ -26,3 +26,4 @@ def test_langgraph_pipeline_execution():
     assert "cost_efficiency_index" in final_state["analysis_metrics"]
     assert final_state["validation_results"]["passed"] is True
     assert "# Executive Intelligence Dossier" in final_state["final_report"]
+

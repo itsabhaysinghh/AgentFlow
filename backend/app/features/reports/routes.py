@@ -19,3 +19,4 @@ def get_report(execution_id: str, db: Session = Depends(get_db), current_user: U
         "duration_seconds": exec_record.duration_seconds,
         "completed_at": exec_record.completed_at.isoformat() if exec_record.completed_at else None
     }
+

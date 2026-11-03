@@ -46,3 +46,4 @@ def create_agentflow_graph():
 
 # Singleton compiled graph
 agentflow_graph = create_agentflow_graph()
+

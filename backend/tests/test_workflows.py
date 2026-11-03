@@ -41,3 +41,4 @@ def test_workflow_lifecycle(client):
     # 5. Delete Workflow
     del_res = client.delete(f"/api/v1/workflows/{wf_id}", headers=headers)
     assert del_res.status_code == 204
+

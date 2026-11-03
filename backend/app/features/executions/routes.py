@@ -76,3 +76,4 @@ def cancel_execution(execution_id: str, db: Session = Depends(get_db), current_u
         db.commit()
 
     return {"status": e.status, "message": "Execution cancelled."}
+

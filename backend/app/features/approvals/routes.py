@@ -51,3 +51,4 @@ def resolve_approval(approval_id: str, decision: str, db: Session = Depends(get_
 
     db.commit()
     return {"id": appr.id, "status": appr.status}
+

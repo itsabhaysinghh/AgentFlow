@@ -27,3 +27,4 @@ def test_register_and_login(client):
     assert me_res.status_code == 200
     me_data = me_res.json()
     assert me_data["email"] == "test.engineer@agentflow.io"
+

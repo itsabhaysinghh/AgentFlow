@@ -14,3 +14,4 @@ async def execution_websocket_endpoint(websocket: WebSocket, execution_id: str):
                 await websocket.send_text("pong")
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, execution_id)
+

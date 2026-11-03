@@ -24,3 +24,4 @@ describe('AgentFlow Core Data Models', () => {
     expect(completedExec?.finalReport).toContain('Executive Report');
   });
 });
+
