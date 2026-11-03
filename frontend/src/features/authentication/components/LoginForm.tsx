@@ -1,10 +1,13 @@
 import { ArrowRight, Mail } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { authService } from '../services/authService';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 import { AuthServiceError } from '../types/auth.types';
 import { PasswordField } from './PasswordField';
 
 export function LoginForm() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,8 +22,8 @@ export function LoginForm() {
     }
     setIsSubmitting(true);
     try {
-      await authService.login({ email: email.trim(), password });
-      setError('The backend response does not yet support the required secure session flow.');
+      await login({ email: email.trim(), password });
+      navigate('/app', { replace: true });
     } catch (cause) {
       setError(cause instanceof AuthServiceError ? cause.message : 'Unable to sign in. Please try again.');
     } finally {

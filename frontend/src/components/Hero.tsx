@@ -3,10 +3,10 @@ import { ArrowRight, Play, Sparkles } from 'lucide-react';
 
 interface HeroProps {
   onStartBuilding: () => void;
-  onExploreWorkflows: () => void;
+  onExploreFeatures: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onStartBuilding, onExploreWorkflows }) => {
+export const Hero: React.FC<HeroProps> = ({ onStartBuilding, onExploreFeatures }) => {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
 
@@ -84,11 +84,11 @@ export const Hero: React.FC<HeroProps> = ({ onStartBuilding, onExploreWorkflows 
           </button>
 
           <button
-            onClick={onExploreWorkflows}
+            onClick={onExploreFeatures}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium glass-btn-secondary cursor-pointer"
           >
             <Play className="w-3.5 h-3.5 fill-current text-zinc-400" />
-            <span>Explore Workflows</span>
+            <span>Explore Features</span>
             <ArrowRight className="w-4 h-4 text-zinc-400 ml-1" />
           </button>
         </div>

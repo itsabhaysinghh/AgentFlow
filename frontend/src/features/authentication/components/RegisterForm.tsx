@@ -1,5 +1,6 @@
 import { ArrowRight, Mail, User } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { AuthServiceError } from '../types/auth.types';
 import { PasswordField } from './PasswordField';
@@ -8,6 +9,7 @@ const passwordMessage = 'Use at least 12 characters, including uppercase, lowerc
 const isStrongPassword = (value: string) => value.length >= 12 && /[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value);
 
 export function RegisterForm() {
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +27,7 @@ export function RegisterForm() {
     setIsSubmitting(true);
     try {
       await authService.register({ fullName: fullName.trim(), email: email.trim(), password });
-      setError('The backend response does not yet support the required secure session flow.');
+      navigate('/login', { replace: true });
     } catch (cause) {
       setError(cause instanceof AuthServiceError ? cause.message : 'Unable to create your account. Please try again.');
     } finally {

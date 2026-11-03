@@ -3,17 +3,18 @@ import { Sparkles, Menu, X, ArrowUpRight } from 'lucide-react';
 
 interface HeaderProps {
   onStartBuilding: () => void;
-  onExploreWorkflows: () => void;
+  onSelectSection: (section: MarketingSection) => void;
 }
+export type MarketingSection = 'features' | 'how-it-works' | 'integrations' | 'pricing';
 
-export const Header: React.FC<HeaderProps> = ({ onStartBuilding, onExploreWorkflows }) => {
+export const Header: React.FC<HeaderProps> = ({ onStartBuilding, onSelectSection }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems = [
-    { label: 'Features', href: '#features' },
-    { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Integrations', href: '#integrations' },
-    { label: 'Pricing', href: '#pricing' },
+  const navItems: { label: string; section: MarketingSection }[] = [
+    { label: 'Features', section: 'features' },
+    { label: 'How It Works', section: 'how-it-works' },
+    { label: 'Integrations', section: 'integrations' },
+    { label: 'Pricing', section: 'pricing' },
   ];
 
   return (
@@ -34,19 +35,14 @@ export const Header: React.FC<HeaderProps> = ({ onStartBuilding, onExploreWorkfl
       <nav className="hidden md:flex items-center px-4 py-1.5 rounded-full liquid-metal-pill">
         <div className="flex items-center gap-1 text-xs font-medium tracking-wide text-zinc-400">
           {navItems.map((item) => (
-            <a
+            <button
               key={item.label}
-              href={item.href}
-              onClick={(e) => {
-                if (item.href === '#how-it-works' || item.href === '#features') {
-                  e.preventDefault();
-                  onExploreWorkflows();
-                }
-              }}
+              type="button"
+              onClick={() => onSelectSection(item.section)}
               className="px-3 py-1.5 rounded-full text-zinc-300 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
               {item.label}
-            </a>
+            </button>
           ))}
         </div>
       </nav>
@@ -78,20 +74,17 @@ export const Header: React.FC<HeaderProps> = ({ onStartBuilding, onExploreWorkfl
         <div className="absolute top-full left-0 right-0 mt-2 mx-4 p-5 rounded-2xl liquid-metal-pill flex flex-col gap-4 border border-zinc-800 bg-black/90 backdrop-blur-2xl md:hidden animate-fade-in shadow-2xl">
           <div className="flex flex-col gap-2">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.label}
-                href={item.href}
-                onClick={(e) => {
+                type="button"
+                onClick={() => {
                   setMobileMenuOpen(false);
-                  if (item.href === '#how-it-works' || item.href === '#features') {
-                    e.preventDefault();
-                    onExploreWorkflows();
-                  }
+                  onSelectSection(item.section);
                 }}
                 className="px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               >
                 {item.label}
-              </a>
+              </button>
             ))}
           </div>
           <div className="pt-2 border-t border-zinc-800/80 flex flex-col gap-2">

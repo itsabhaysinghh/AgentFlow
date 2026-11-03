@@ -14,18 +14,24 @@ import { AgentsPage } from '@/pages/AgentsPage';
 import { IntegrationsPage } from '@/pages/IntegrationsPage';
 import { ApprovalsPage } from '@/pages/ApprovalsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { AuthProvider } from '@/features/authentication/AuthContext';
+import { RedirectAuthenticated, RequireAuth } from '@/features/authentication/components/RouteGuards';
 
 export function App() {
   return (
     <MockProvider>
+      <AuthProvider>
       <BrowserRouter>
         <Routes>
           {/* Public Landing & Authentication */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route element={<RedirectAuthenticated />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
 
           {/* Protected Application Workspace */}
+          <Route element={<RequireAuth />}>
           <Route path="/app" element={<DashboardLayout />}>
             <Route index element={<OverviewPage />} />
             
@@ -44,11 +50,13 @@ export function App() {
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
+          </Route>
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </AuthProvider>
     </MockProvider>
   );
 }

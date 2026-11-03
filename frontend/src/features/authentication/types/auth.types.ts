@@ -18,6 +18,14 @@ export interface AuthSession {
   user: AuthenticatedUser;
 }
 
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+}
+
 export class AuthServiceError extends Error {
   readonly status?: number;
 
