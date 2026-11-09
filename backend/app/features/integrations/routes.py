@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from app.core.credentials import encrypt_credential
 from app.db.session import get_db
 from app.db.models import IntegrationAccount, User
 from app.features.authentication.routes import get_current_user
+from app.features.integrations.schemas import CredentialUpsert, IntegrationCredentialStatus
 
 integrations_router = APIRouter(prefix="/integrations", tags=["Integrations"])
 
@@ -51,6 +54,23 @@ DEFAULT_INTEGRATIONS = [
     }
 ]
 
+
+def _provider_metadata(key: str) -> dict:
+    meta = next((item for item in DEFAULT_INTEGRATIONS if item["key"] == key), None)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Integration provider not supported")
+    return meta
+
+
+def _safe_credential_status(account: IntegrationAccount) -> IntegrationCredentialStatus:
+    """The encrypted database field is intentionally never part of an API model."""
+    return IntegrationCredentialStatus(
+        key=account.provider_key,
+        status=account.status,
+        connected_account=account.account_identifier,
+        credential_configured=bool(account.encrypted_credentials),
+    )
+
 @integrations_router.get("")
 def list_integrations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     user_integrations = {i.provider_key: i for i in db.query(IntegrationAccount).filter(IntegrationAccount.user_id == current_user.id).all()}
@@ -73,28 +93,73 @@ def list_integrations(db: Session = Depends(get_db), current_user: User = Depend
 
 @integrations_router.post("/{key}/toggle")
 def toggle_integration(key: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    linked = db.query(IntegrationAccount).filter(
-        IntegrationAccount.user_id == current_user.id,
-        IntegrationAccount.provider_key == key
-    ).first()
+    _provider_metadata(key)
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Use credential validation to connect an integration; connection cannot be toggled.")
 
-    if not linked:
-        meta = next((item for item in DEFAULT_INTEGRATIONS if item["key"] == key), None)
-        if not meta:
-            raise HTTPException(status_code=404, detail="Integration provider not supported")
-        linked = IntegrationAccount(
+
+@integrations_router.put("/{key}/credentials", response_model=IntegrationCredentialStatus)
+def save_provider_credential(
+    key: str,
+    credential_in: CredentialUpsert,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Encrypt and save a provider credential for the authenticated user only."""
+    meta = _provider_metadata(key)
+    account = (
+        db.query(IntegrationAccount)
+        .filter(IntegrationAccount.user_id == current_user.id, IntegrationAccount.provider_key == key)
+        .one_or_none()
+    )
+    encrypted = encrypt_credential(credential_in.credential)
+    if account:
+        account.encrypted_credentials = encrypted
+        account.status = "connected"
+        if credential_in.account_identifier is not None:
+            account.account_identifier = credential_in.account_identifier
+    else:
+        account = IntegrationAccount(
             user_id=current_user.id,
             provider_key=key,
             name=meta["name"],
             status="connected",
-            account_identifier=f"user@{key}.linked",
-            permissions=meta["permissions"]
+            account_identifier=credential_in.account_identifier,
+            encrypted_credentials=encrypted,
+            permissions=meta["permissions"],
         )
-        db.add(linked)
-    else:
-        linked.status = "disconnected" if linked.status == "connected" else "connected"
+        db.add(account)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Credential update conflicted; retry the request")
+    db.refresh(account)
+    return _safe_credential_status(account)
 
+
+@integrations_router.get("/{key}/credentials", response_model=IntegrationCredentialStatus)
+def get_provider_credential_status(
+    key: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _provider_metadata(key)
+    account = (
+        db.query(IntegrationAccount)
+        .filter(IntegrationAccount.user_id == current_user.id, IntegrationAccount.provider_key == key)
+        .one_or_none()
+    )
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No credential configured for this provider")
+    return _safe_credential_status(account)
+
+@integrations_router.delete("/{key}/credentials", status_code=status.HTTP_204_NO_CONTENT)
+def delete_provider_credential(key: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _provider_metadata(key)
+    account = db.query(IntegrationAccount).filter(IntegrationAccount.user_id == current_user.id, IntegrationAccount.provider_key == key).one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No credential configured for this provider")
+    db.delete(account)
     db.commit()
-    db.refresh(linked)
-    return {"key": key, "status": linked.status}
+    return None
 
