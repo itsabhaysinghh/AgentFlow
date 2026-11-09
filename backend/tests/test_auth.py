@@ -28,3 +28,7 @@ def test_register_and_login(client):
     me_data = me_res.json()
     assert me_data["email"] == "test.engineer@agentflow.io"
 
+def test_protected_endpoint_rejects_missing_or_invalid_token(client):
+    assert client.get("/api/v1/auth/me").status_code == 401
+    assert client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid"}).status_code == 401
+

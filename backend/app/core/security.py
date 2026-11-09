@@ -1,26 +1,32 @@
 import hashlib
+import hmac
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 import jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from app.core.config import settings
 
+password_hasher = PasswordHasher()
+
 def get_password_hash(password: str) -> str:
-    """Generate salted SHA-256 / bcrypt password hash"""
-    salt = os.urandom(16).hex()
-    hash_obj = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
-    return f"{salt}${hash_obj}"
+    """Hash a password using Argon2id with a unique, library-generated salt."""
+    return password_hasher.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against stored salt and hash"""
+    """Verify Argon2id hashes and retain temporary support for legacy SHA-256 rows."""
     try:
-        if "$" not in hashed_password:
-            return False
+        if hashed_password.startswith("$argon2"):
+            return password_hasher.verify(hashed_password, plain_password)
         salt, stored_hash = hashed_password.split("$", 1)
-        test_hash = hashlib.sha256((salt + plain_password).encode('utf-8')).hexdigest()
-        return test_hash == stored_hash
-    except Exception:
+        candidate = hashlib.sha256((salt + plain_password).encode("utf-8")).hexdigest()
+        return hmac.compare_digest(candidate, stored_hash)
+    except (InvalidHashError, VerificationError, VerifyMismatchError, ValueError):
         return False
+
+def password_needs_rehash(hashed_password: str) -> bool:
+    return not hashed_password.startswith("$argon2") or password_hasher.check_needs_rehash(hashed_password)
 
 def create_access_token(subject: Union[str, Any], expires_delta: timedelta = None) -> str:
     """Generate JWT access token"""

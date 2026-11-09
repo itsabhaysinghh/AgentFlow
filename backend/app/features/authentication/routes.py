@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User
-from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
+from app.core.security import verify_password, get_password_hash, password_needs_rehash, create_access_token, decode_access_token
 from app.features.authentication.schemas import UserRegister, UserLogin, TokenResponse, UserOut
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -11,19 +11,7 @@ security = HTTPBearer(auto_error=False)
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> User:
     if not credentials:
-        # Default fallback demo user if no token provided during testing
-        user = db.query(User).filter(User.email == "alex.vance@agentflow.io").first()
-        if not user:
-            user = User(
-                email="alex.vance@agentflow.io",
-                hashed_password=get_password_hash("password123"),
-                full_name="Alex Vance",
-                role="Lead AI Systems Architect"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        return user
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required", headers={"WWW-Authenticate": "Bearer"})
 
     payload = decode_access_token(credentials.credentials)
     if not payload or "sub" not in payload:
@@ -61,7 +49,11 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
 def login(login_in: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == login_in.email).first()
     if not user or not verify_password(login_in.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+
+    if password_needs_rehash(user.hashed_password):
+        user.hashed_password = get_password_hash(login_in.password)
+        db.commit()
 
     token = create_access_token(user.id)
     return TokenResponse(
