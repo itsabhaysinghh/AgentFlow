@@ -10,12 +10,16 @@ class ConnectionManager:
         # Maps execution_id to list of active WebSockets
         self.active_connections: Dict[str, List[WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket, execution_id: str):
-        await websocket.accept()
+    async def connect(self, websocket: WebSocket, execution_id: str, subprotocol: str = "agentflow"):
+        if len(self.active_connections.get(execution_id, [])) >= 5:
+            await websocket.close(code=4429)
+            return False
+        await websocket.accept(subprotocol=subprotocol)
         if execution_id not in self.active_connections:
             self.active_connections[execution_id] = []
         self.active_connections[execution_id].append(websocket)
-        logger.info(f"WebSocket client connected to telemetry for execution {execution_id}")
+        logger.info("WebSocket client connected to execution telemetry")
+        return True
 
     def disconnect(self, websocket: WebSocket, execution_id: str):
         if execution_id in self.active_connections:
