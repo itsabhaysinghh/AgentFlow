@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, String, Text, Boolean, Integer, Float, DateTime, ForeignKey, JSON
+    Column, String, Text, Boolean, Integer, Float, DateTime, ForeignKey, JSON,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from app.db.base import Base
@@ -26,6 +27,7 @@ class User(Base):
     executions = relationship("WorkflowExecution", back_populates="user", cascade="all, delete-orphan")
     integrations = relationship("IntegrationAccount", back_populates="user", cascade="all, delete-orphan")
     approvals = relationship("ApprovalRequest", back_populates="user", cascade="all, delete-orphan")
+    agents = relationship("Agent", back_populates="owner", cascade="all, delete-orphan")
 
 class Workflow(Base):
     __tablename__ = "workflows"
@@ -87,6 +89,7 @@ class Agent(Base):
     __tablename__ = "agents"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
     role = Column(String(50), unique=True, index=True, nullable=False)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
@@ -96,9 +99,30 @@ class Agent(Base):
     responsibilities = Column(JSON, default=list)
     system_prompt = Column(Text, nullable=False)
     temperature = Column(Float, default=0.2)
+    owner = relationship("User", back_populates="agents")
+    executions = relationship("AgentExecution", back_populates="agent", cascade="all, delete-orphan")
+
+class AgentExecution(Base):
+    __tablename__ = "agent_executions"
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    agent_id = Column(String(36), ForeignKey("agents.id"), nullable=False, index=True)
+    prompt = Column(Text, nullable=False)
+    output = Column(Text, nullable=True)
+    status = Column(String(30), nullable=False, default="running")
+    model_name = Column(String(100), nullable=False)
+    duration_seconds = Column(Float, nullable=True)
+    input_tokens = Column(Integer, nullable=True)
+    output_tokens = Column(Integer, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    agent = relationship("Agent", back_populates="executions")
 
 class IntegrationAccount(Base):
     __tablename__ = "integration_accounts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "provider_key", name="uq_integration_accounts_user_provider"),
+    )
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
